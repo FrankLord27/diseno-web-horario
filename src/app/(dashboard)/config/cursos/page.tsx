@@ -9,19 +9,21 @@ import type { Course, Grade, Room, Shift } from "@/types/entities";
 import type { UseFormReturn } from "react-hook-form";
 import { useCrudResource } from "@/hooks/useCrud";
 import { CrudPage } from "@/components/features/CrudPage";
-import { Badge } from "@/components/ui/Badge";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { HoursBar } from "@/components/ui/HoursBar";
 import { courseHoursSummary } from "@/lib/courseHours";
 
-function HoursBadge({ course }: { course: Course }) {
-  const { assigned, required, missing } = courseHoursSummary(course);
-  const tone = missing === 0 ? "green" : missing <= 4 ? "amber" : "red";
+function HoursCell({ course }: { course: Course }) {
+  const { assigned, required } = courseHoursSummary(course);
   return (
-    <Badge tone={tone}>
-      {assigned}h / {required}h{missing > 0 ? ` · faltan ${missing}h` : ""}
-    </Badge>
+    <HoursBar
+      assigned={assigned}
+      total={required}
+      mode="coverage"
+      className="w-40"
+    />
   );
 }
 
@@ -296,7 +298,7 @@ export default function CursosPage() {
         { header: "Turno", cell: (c) => c.shift.name },
         { header: "Capacidad", cell: (c) => c.capacity },
         { header: "Aula base", cell: (c) => c.homeRoom?.name ?? "—" },
-        { header: "Horas asignadas", cell: (c) => <HoursBadge course={c} /> },
+        { header: "Horas asignadas", cell: (c) => <HoursCell course={c} /> },
       ]}
       renderForm={(form) => (
         <CursoFormFields
