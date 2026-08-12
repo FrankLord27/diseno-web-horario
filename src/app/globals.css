@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+
+  --color-surface: #0f172a;
+  --color-surface-hover: #1e293b;
+
+  --radius-card: 0.75rem;
+
+  /* Sombras multicapa (corta+dura / larga+difusa) calibradas para tema claro.
+     Dan profundidad sin el look "barato" de una sola sombra gris fuerte. */
+  --shadow-card: 0 1px 2px #0f172a12, 0 2px 8px #0f172a0a;
+  --shadow-card-hover: 0 2px 4px #0f172a17, 0 10px 26px #0f172a1a;
+  --shadow-elevated: 0 4px 10px #0f172a1f, 0 18px 44px #0f172a26;
+  --shadow-primary: 0 1px 2px #2563eb2e, 0 6px 16px #2563eb33;
+
+  /* Entradas suaves (ease-out: entra rápido, frena suave). Usar con motion-safe. */
+  --animate-fade-in: fade-in 0.2s ease-out both;
+  --animate-fade-in-up: fade-in-up 0.32s ease-out both;
+  --animate-scale-in: scale-in 0.18s ease-out both;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+  }
+
+  ::selection {
+    @apply bg-primary-200;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-primary-600;
+  }
+}
+
+/* Impresión: A4 apaisado para que la grilla del horario quepa limpia.
+   El chrome (sidebar, botones, panel de conflictos) se oculta con print:hidden. */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 12mm;
+  }
+
+  body {
+    @apply bg-white;
+  }
+}
