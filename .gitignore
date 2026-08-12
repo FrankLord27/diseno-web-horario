@@ -1,0 +1,16 @@
+# Dependencias
+node_modules/
+
+# Build de Next.js
+.next/
+out/
+
+# Variables de entorno (¡nunca subir credenciales!)
+.env
+.env.*
+
+# TypeScript
+*.tsbuildinfo
+
+# SO / editor
+.DS_Store
