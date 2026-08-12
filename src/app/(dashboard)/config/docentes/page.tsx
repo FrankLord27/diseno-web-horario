@@ -6,7 +6,13 @@ import {
   TeacherStatusSchema,
   type CreateTeacherInput,
 } from "@horarios/shared-types";
-import type { Course, Shift, Subject, Teacher } from "@/types/entities";
+import type {
+  Assignment,
+  Course,
+  Shift,
+  Subject,
+  Teacher,
+} from "@/types/entities";
 import { useCrudResource } from "@/hooks/useCrud";
 import { CrudPage } from "@/components/features/CrudPage";
 import { ImportExcel } from "@/components/features/ImportExcel";
@@ -16,6 +22,8 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
+import { HoursBar } from "@/components/ui/HoursBar";
+import { teacherLoad } from "@/lib/teachingLoad";
 import {
   CONTRACT_TYPE_LABELS,
   DAY_LABELS,
@@ -93,10 +101,71 @@ function AvailabilityDetail({ teacher }: { teacher: Teacher }) {
   );
 }
 
+/** Detalle expandido: desglose de la carga semanal + disponibilidad. */
+function TeacherDetail({
+  teacher,
+  assignments,
+}: {
+  teacher: Teacher;
+  assignments: Assignment[];
+}) {
+  const load = teacherLoad(teacher, assignments);
+  return (
+    <div className="flex flex-col gap-5">
+      <section>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            Carga semanal
+          </h3>
+          <HoursBar
+            assigned={load.assigned}
+            total={load.max}
+            mode="quota"
+            className="w-56"
+          />
+        </div>
+        {load.items.length === 0 ? (
+          <p className="text-sm text-gray-500">
+            Sin asignaciones activas todavía — su carga actual es 0h.
+          </p>
+        ) : (
+          <ul className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+            {load.items.map((i) => (
+              <li
+                key={i.id}
+                className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm"
+              >
+                <span
+                  className="size-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: i.subjectColor }}
+                  aria-hidden="true"
+                />
+                <span className="min-w-0 flex-1 truncate text-gray-700">
+                  {i.subjectName} · {i.courseName}
+                </span>
+                <span className="font-semibold tabular-nums text-gray-900">
+                  {i.weeklyHours}h
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+      <section>
+        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+          Disponibilidad
+        </h3>
+        <AvailabilityDetail teacher={teacher} />
+      </section>
+    </div>
+  );
+}
+
 export default function DocentesPage() {
   const subjects = useCrudResource<Subject>("subjects").list;
   const shifts = useCrudResource<Shift>("shifts").list;
   const courses = useCrudResource<Course>("courses").list;
+  const assignments = useCrudResource<Assignment>("assignments").list;
 
   return (
     <div className="flex flex-col gap-4">
@@ -162,7 +231,19 @@ export default function DocentesPage() {
                 .map((ts) => ts.subject.abbreviation)
                 .join(", ") || "—",
           },
-          { header: "Carga máx.", cell: (t) => `${t.maxWeeklyHours}h/sem` },
+          {
+            header: "Carga semanal",
+            cell: (t) => {
+              const load = teacherLoad(t, assignments.data ?? []);
+              return (
+                <HoursBar
+                  assigned={load.assigned}
+                  total={load.max}
+                  mode="quota"
+                />
+              );
+            },
+          },
           {
             header: "Función",
             cell: (t) =>
@@ -362,7 +443,9 @@ export default function DocentesPage() {
             />
           </>
         )}
-        renderExpanded={(t) => <AvailabilityDetail teacher={t} />}
+        renderExpanded={(t) => (
+          <TeacherDetail teacher={t} assignments={assignments.data ?? []} />
+        )}
       />
     </div>
   );

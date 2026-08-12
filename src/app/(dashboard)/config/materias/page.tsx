@@ -6,7 +6,7 @@ import {
   SubjectKindSchema,
   type CreateSubjectInput,
 } from "@horarios/shared-types";
-import type { Grade, Subject } from "@/types/entities";
+import type { Assignment, Course, Grade, Subject } from "@/types/entities";
 import { useCrudResource } from "@/hooks/useCrud";
 import { CrudPage } from "@/components/features/CrudPage";
 import { ImportExcel } from "@/components/features/ImportExcel";
@@ -15,10 +15,92 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Checkbox } from "@/components/ui/Checkbox";
+import { Badge } from "@/components/ui/Badge";
+import { HoursBar } from "@/components/ui/HoursBar";
+import { subjectLoad } from "@/lib/teachingLoad";
 import { ROOM_KIND_LABELS, SUBJECT_KIND_LABELS } from "@/lib/labels";
+
+/** Detalle expandido: cobertura por grado y sección, y docentes asignados. */
+function SubjectDetail({
+  subject,
+  assignments,
+  courses,
+}: {
+  subject: Subject;
+  assignments: Assignment[];
+  courses: Course[];
+}) {
+  const load = subjectLoad(subject, assignments, courses);
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+        <HoursBar
+          assigned={load.totalAssigned}
+          total={load.totalRequired}
+          mode="coverage"
+          className="w-64"
+        />
+        <p className="text-xs text-gray-500">
+          {load.teachers.length === 0
+            ? "Sin docentes asignados todavía."
+            : `Docentes: ${load.teachers.join(", ")}`}
+        </p>
+      </div>
+
+      {load.byGrade.length === 0 ? (
+        <p className="text-sm text-gray-500">
+          Esta materia no tiene carga horaria definida en ningún grado.
+        </p>
+      ) : (
+        load.byGrade.map((g) => (
+          <section key={g.gradeId}>
+            <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              {g.gradeName} · {g.requiredPerSection}h por sección
+            </h3>
+            {g.sections.length === 0 ? (
+              <p className="text-sm text-gray-400">
+                No hay secciones creadas de este grado.
+              </p>
+            ) : (
+              <ul className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-4">
+                {g.sections.map((sec) => {
+                  const missing = Math.max(
+                    0,
+                    g.requiredPerSection - sec.assigned,
+                  );
+                  return (
+                    <li
+                      key={sec.courseId}
+                      className="flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm"
+                    >
+                      <span className="text-gray-700">{sec.courseName}</span>
+                      <Badge
+                        tone={
+                          missing === 0
+                            ? "green"
+                            : missing <= 2
+                              ? "amber"
+                              : "red"
+                        }
+                      >
+                        {sec.assigned}/{g.requiredPerSection}h
+                      </Badge>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+        ))
+      )}
+    </div>
+  );
+}
 
 export default function MateriasPage() {
   const grades = useCrudResource<Grade>("grades").list;
+  const assignments = useCrudResource<Assignment>("assignments").list;
+  const courses = useCrudResource<Course>("courses").list;
 
   return (
     <div className="flex flex-col gap-4">
@@ -89,11 +171,44 @@ export default function MateriasPage() {
             cell: (s) => (s.allowsDoubleBlocks ? "Sí" : "No"),
           },
           {
-            header: "Cargas",
-            cell: (s) =>
-              s.gradeLoads
-                .map((l) => `${l.grade.name}: ${l.weeklyHours}h`)
-                .join(" · ") || "—",
+            header: "Carga por grado",
+            cell: (s) => (
+              <div className="flex max-w-64 flex-wrap gap-1">
+                {s.gradeLoads.length === 0 ? (
+                  <span className="text-gray-400">—</span>
+                ) : (
+                  s.gradeLoads.map((l) => (
+                    <Badge key={l.id} tone="blue">
+                      {l.grade.name} · {l.weeklyHours}h
+                    </Badge>
+                  ))
+                )}
+              </div>
+            ),
+          },
+          {
+            header: "Horas asignadas",
+            cell: (s) => {
+              const load = subjectLoad(
+                s,
+                assignments.data ?? [],
+                courses.data ?? [],
+              );
+              if (load.totalRequired === 0) {
+                return (
+                  <span className="text-xs text-gray-400">
+                    Sin malla o sin secciones
+                  </span>
+                );
+              }
+              return (
+                <HoursBar
+                  assigned={load.totalAssigned}
+                  total={load.totalRequired}
+                  mode="coverage"
+                />
+              );
+            },
           },
         ]}
         renderForm={(form) => {
@@ -230,6 +345,13 @@ export default function MateriasPage() {
             </>
           );
         }}
+        renderExpanded={(s) => (
+          <SubjectDetail
+            subject={s}
+            assignments={assignments.data ?? []}
+            courses={courses.data ?? []}
+          />
+        )}
       />
     </div>
   );
