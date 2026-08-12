@@ -241,6 +241,25 @@ export default function HorariosPage() {
         </p>
       )}
 
+      {/* Resumen de un vistazo: clases colocadas y estado de conflictos */}
+      {(view.data ?? []).length > 0 && (
+        <div className="flex flex-wrap gap-2 print:hidden">
+          <Badge tone="blue">
+            {(view.data ?? []).length} clases colocadas
+          </Badge>
+          <Badge tone={hardConflicts.length > 0 ? "red" : "green"}>
+            {hardConflicts.length > 0
+              ? `${hardConflicts.length} conflicto(s) duro(s)`
+              : "Sin conflictos duros"}
+          </Badge>
+          {softConflicts.length > 0 && (
+            <Badge tone="amber">
+              {softConflicts.length} preferencia(s) sin cumplir
+            </Badge>
+          )}
+        </div>
+      )}
+
       <div className="grid gap-4 xl:grid-cols-[1fr_320px] print:grid-cols-1 print:gap-0">
         <section className="overflow-x-auto rounded-card border border-gray-200 bg-white shadow-card">
           {view.isLoading || shifts.isLoading ? (
